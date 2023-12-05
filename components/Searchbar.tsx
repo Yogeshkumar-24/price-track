@@ -1,63 +1,71 @@
 "use client"
 
-import { scrapeAndStoreProduct } from '@/lib/actions'
-import { error } from 'console'
-import React, { useState , FormEvent} from 'react'
+import { scrapeAndStoreProduct } from '@/lib/actions';
+import { FormEvent, useState } from 'react'
+
+const isValidAmazonProductURL = (url: string) => {
+  try {
+    const parsedURL = new URL(url);
+    const hostname = parsedURL.hostname;
+
+    if(
+      hostname.includes('amazon.com') || 
+      hostname.includes ('amazon.') || 
+      hostname.endsWith('amazon')
+    ) {
+      return true;
+    }
+  } catch (error) {
+    return false;
+  }
+
+  return false;
+}
 
 const Searchbar = () => {
+  const [searchPrompt, setSearchPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-    const [searchPrompt, setSearchPrompt] = useState('')
-    const [isLoding , setIsLoading] = useState(false)
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-    const isValidAmazonProductURL = (url: string) => {
-        try{
-            const parsedUrl = new URL(url);
-            const hostName = parsedUrl.hostname;
+    const isValidLink = isValidAmazonProductURL(searchPrompt);
 
-            if(hostName.includes('amazon.in')){
-                return true
-            }
-        }
-        catch (error){
+    if(!isValidLink) return alert('Please provide a valid Amazon link')
 
-        }
-        return false;
+    try {
+      setIsLoading(true);
+
+      // Scrape the product page
+      const product = await scrapeAndStoreProduct(searchPrompt);
+      console.log(product)
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoading(false);
     }
+  }
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement> ) => {
-        event.preventDefault();
-        
-        const isValidLink = isValidAmazonProductURL(searchPrompt);
-        if( !isValidLink){
-            return alert('Please provide the valid Amazon Link')
-        }
-
-        try{
-            setIsLoading(true)
-            const product = await scrapeAndStoreProduct(searchPrompt)
-        }
-        catch(error){
-
-        }
-        finally{
-            setIsLoading(false)
-        }
-    }
   return (
     <form 
-    className='flex flex-wrap gap-4 mt-16' 
-    onSubmit={handleSubmit}
+      className="flex flex-wrap gap-4 mt-12" 
+      onSubmit={handleSubmit}
     >
-        <input 
-        type="text" 
-        placeholder='Enter the product Link' 
-        className='searchbar-input'
+      <input 
+        type="text"
         value={searchPrompt}
-        onChange={(e) => setSearchPrompt(e.target.value) }
-        />
-        <button type='submit' className='searchbar-btn' disabled = {searchPrompt === ''}>
-            {isLoding? 'Searching...' : 'Search'}
-        </button>
+        onChange={(e) => setSearchPrompt(e.target.value)}
+        placeholder="Enter product link"
+        className="searchbar-input"
+      />
+
+      <button 
+        type="submit" 
+        className="searchbar-btn"
+        disabled={searchPrompt === ''}
+      >
+        {isLoading ? 'Searching...' : 'Search'}
+      </button>
     </form>
   )
 }
